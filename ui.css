@@ -1,11 +1,11 @@
 /* Shared geometry: icons use a 24px drawing grid, never a font baseline. */
-:root{--dock-bottom:max(6px,env(safe-area-inset-bottom));--dock-height:68px}
+:root{--dock-bottom:max(4px,calc(env(safe-area-inset-bottom) - 18px));--dock-height:64px}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-padding-bottom:calc(var(--dock-height) + var(--dock-bottom) + 88px)}
 .app{padding-top:calc(env(safe-area-inset-top) + 16px);padding-bottom:calc(var(--dock-height) + var(--dock-bottom) + 96px);padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
 header{margin-top:0;gap:16px}header>div{min-width:0}#username{overflow-wrap:anywhere}
 #screen{min-width:0}
 #nav{bottom:var(--dock-bottom);min-height:var(--dock-height);width:min(600px,calc(100% - 16px));padding:4px;border-radius:36px}
-#nav button{padding:7px 0;gap:3px;min-height:58px}
+#nav button{padding:5px 0;gap:3px;min-height:54px}
 #nav span{font-size:11px;line-height:1.2;white-space:nowrap}
 #nav::before{top:4px;bottom:4px;left:4px;width:calc((100% - 8px)/5)}
 #add{bottom:calc(var(--dock-bottom) + var(--dock-height) + 12px)}
@@ -17,6 +17,16 @@ header{margin-top:0;gap:16px}header>div{min-width:0}#username{overflow-wrap:anyw
 .week-strip{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;padding:10px 6px;background:var(--panel);border-radius:20px}
 .week-day{display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px 0;border-radius:12px;min-width:0}.week-day small{font-size:12px}.week-day strong{font-size:16px}.week-day.today{background:#74a9da25;box-shadow:inset 0 0 0 1px var(--blue)}
 .weekly-chart>div{min-width:0}.weekly-chart small{font-size:12px}
+.week-day{padding:8px 0;gap:5px;min-height:76px}
+.week-day.selected{background:var(--blue);color:#102235}.week-day.selected small{color:inherit}
+.week-dot{display:block;width:4px;height:4px;border-radius:50%;background:transparent}.week-dot.has-data{background:currentColor}
+.week-tools{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0 16px}
+.week-jump{display:flex;align-items:center;gap:8px;min-width:0;margin:0;font-size:12px}.week-jump .date-shell{width:150px;margin:0}
+.selected-day{margin-top:24px}.selected-day .day-heading{align-items:flex-start}
+.backup-status{font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.update-notice{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:var(--panel);border:1px solid var(--blue);border-radius:16px;margin-bottom:16px;font-size:13px}.update-notice button{color:var(--blue)}
+.backup-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.backup-actions button{flex:1;min-width:120px}
+@media(max-width:360px){.week-jump{flex-direction:column;gap:2px}.week-jump .date-shell{width:135px}.week-day small{font-size:11px}}
 .segments>button{min-width:0}.transaction .txamount{max-width:45%;white-space:normal;overflow-wrap:anywhere;text-align:right}
 dialog{max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px)}
 .input-shell{display:block;min-width:0;max-width:100%}
