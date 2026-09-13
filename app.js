@@ -62,11 +62,29 @@ function renderHome(){
  for(let i=0;i<offset;i++)cal+='<span></span>';
  for(let d=1;d<=days;d++){const date=month+'-'+String(d).padStart(2,'0');cal+=`<button class="day ${date===selected?'selected':''} ${date===today?'today':''}" data-date="${date}" aria-label="Ngày ${d}" aria-pressed="${date===selected}">${d}${items.some(t=>t.date===date)?'<i class="dot"></i>':''}</button>`;}
  const list=items.filter(t=>t.date===selected&&(!query||(t.note+' '+t.category+' '+t.amount).toLocaleLowerCase('vi').includes(query.toLocaleLowerCase('vi'))));
- $('#screen').innerHTML=`<div class="row"><span class="status pill">${daily.length?'Hôm nay đã chi '+money(sum(daily,'expense')):'Hôm nay chưa chi tiêu'}</span>${btn(hidden?'Hiện tiền':'Ẩn tiền','hide','link')}</div><div class="segments"><button data-view="day" class="${view==='day'?'active':''}">Danh sách</button><button data-view="month" class="${view==='month'?'active':''}">Lịch tháng</button></div>${summary(view==='day'?items.filter(t=>t.date===selected):items)}${chips()}${view==='day'?`<div class="day-picker">${btn('‹','previous-day')}<label>Ngày giao dịch<input id="dayDate" type="date" value="${selected}" aria-label="Ngày giao dịch"></label>${btn('›','following-day')}</div>`:period()}${view==='month'?`<div class="calendar">${['T2','T3','T4','T5','T6','T7','CN'].map(d=>`<div class="weekday">${d}</div>`).join('')}${cal}</div>`:''}<div class="row section"><h2>${'Ngày '+selected.split('-').reverse().join('/')}</h2>${btn('Hôm nay','today','link')}</div><input type="search" id="search" aria-label="Tìm giao dịch" placeholder="Tìm ghi chú, danh mục, số tiền…" value="${esc(query)}">${txList(list)}`;
+ $('#screen').innerHTML=`<div class="row home-status"><span class="status pill">${daily.length?'Hôm nay đã chi '+money(sum(daily,'expense')):'Hôm nay chưa chi tiêu'}</span>${btn(hidden?'Hiện tiền':'Ẩn tiền','hide','link')}</div><div class="segments"><button data-view="day" class="${view==='day'?'active':''}">Danh sách</button><button data-view="month" class="${view==='month'?'active':''}">Lịch tháng</button></div>${summary(view==='day'?items.filter(t=>t.date===selected):items)}${chips()}${view==='day'?`<div class="day-picker">${btn('‹','previous-day')}<label>Ngày giao dịch<span class="date-shell"><input id="dayDate" type="date" value="${selected}" aria-label="Ngày giao dịch"></span></label>${btn('›','following-day')}</div>`:period()}${view==='month'?`<div class="calendar">${['T2','T3','T4','T5','T6','T7','CN'].map(d=>`<div class="weekday">${d}</div>`).join('')}${cal}</div>`:''}<div class="row section day-heading"><h2>${'Ngày '+selected.split('-').reverse().join('/')}</h2>${btn('Hôm nay','today','link')}</div><input type="search" id="search" aria-label="Tìm giao dịch" placeholder="Tìm ghi chú, danh mục, số tiền…" value="${esc(query)}">${txList(list)}`;
 }
-function renderStats(){let items=state.transactions.filter(t=>(account==='all'||t.account===account||t.to===account));if(statsMode==='year')items=items.filter(t=>t.date.startsWith(month.slice(0,4)));else if(statsMode==='week'){const d=new Date(selected+'T12:00:00');d.setDate(d.getDate()-(d.getDay()+6)%7);const start=iso(d);d.setDate(d.getDate()+6);items=items.filter(t=>t.date>=start&&t.date<=iso(d));}else items=items.filter(t=>t.date.startsWith(month));
+function statsRange(){
+ const anchor=new Date(selected+'T12:00:00');
+ if(statsMode==='week'){
+  anchor.setDate(anchor.getDate()-(anchor.getDay()+6)%7);
+  const dates=Array.from({length:7},(_,i)=>{const d=new Date(anchor);d.setDate(d.getDate()+i);return iso(d);});
+  return {start:dates[0],end:dates[6],dates};
+ }
+ const start=statsMode==='year'?month.slice(0,4)+'-01-01':month+'-01';
+ const endDate=statsMode==='year'?new Date(Number(month.slice(0,4)),11,31,12):new Date(Number(month.slice(0,4)),Number(month.slice(5)),0,12);
+ const dates=[];for(let d=new Date(start+'T12:00:00');d<=endDate;d.setDate(d.getDate()+1))dates.push(iso(d));
+ return {start,end:iso(endDate),dates};
+}
+function statsPeriod(){
+ if(statsMode==='month')return period();
+ const range=statsRange(),short=d=>d.split('-').reverse().slice(0,2).join('/');
+ const title=statsMode==='year'?'Năm '+month.slice(0,4):short(range.start)+' – '+short(range.end)+' / '+range.end.slice(0,4);
+ return `<div class="period">${btn('‹','prev')}<span>${title}</span>${btn('›','next')}</div>`+(statsMode==='week'?`<div class="week-strip" aria-label="Các ngày trong tuần">${range.dates.map((d,i)=>`<div class="week-day ${d===today?'today':''}"><small>${['T2','T3','T4','T5','T6','T7','CN'][i]}</small><strong>${Number(d.slice(8))}</strong></div>`).join('')}</div>`:'');
+}
+function renderStats(){let items=state.transactions.filter(t=>(account==='all'||t.account===account||t.to===account));const range=statsRange();items=items.filter(t=>t.date>=range.start&&t.date<=range.end);
  const total=sum(items,'expense'),groups={};items.filter(t=>t.type==='expense').forEach(t=>groups[t.category]=(groups[t.category]||0)+t.amount);
- $('#screen').innerHTML=`<h2>Thống kê</h2><div class="segments">${[['week','Tuần'],['month','Tháng'],['year','Năm']].map(([k,v])=>`<button data-stats="${k}" class="${statsMode===k?'active':''}">${v}</button>`).join('')}</div>${period()}${statsMode==='week'?`<label>Chọn ngày trong tuần<input type="date" id="weekDate" value="${selected}"></label>`:''}${chips()}${summary(items)}<div class="card"><small>Chênh lệch thu − chi</small><strong class="amount income">${money(sum(items,'income')-total)}</strong></div><h2 class="section">Chi tiêu theo danh mục</h2>${total?`<div class="card">${Object.entries(groups).sort((a,b)=>b[1]-a[1]).map(([name,n])=>`<div class="chart-row"><div class="row"><span>${esc(name)}</span><strong>${money(n)}</strong></div><div class="bar"><i style="width:${n/total*100}%"></i></div><small>${Math.round(n/total*100)}% tổng chi</small></div>`).join('')}</div>`:empty('Chưa có dữ liệu','Biểu đồ sẽ xuất hiện khi có khoản chi trong kỳ.')}`;
+ $('#screen').innerHTML=`<h2>Thống kê</h2><div class="segments">${[['week','Tuần'],['month','Tháng'],['year','Năm']].map(([k,v])=>`<button data-stats="${k}" class="${statsMode===k?'active':''}">${v}</button>`).join('')}</div>${statsPeriod()}${chips()}${summary(items)}<div class="card"><small>Chênh lệch thu − chi</small><strong class="amount income">${money(sum(items,'income')-total)}</strong></div><h2 class="section">Chi tiêu theo danh mục</h2>${total?`<div class="card">${Object.entries(groups).sort((a,b)=>b[1]-a[1]).map(([name,n])=>`<div class="chart-row"><div class="row"><span>${esc(name)}</span><strong>${money(n)}</strong></div><div class="bar"><i style="width:${n/total*100}%"></i></div><small>${Math.round(n/total*100)}% tổng chi</small></div>`).join('')}</div>`:empty('Chưa có dữ liệu','Biểu đồ sẽ xuất hiện khi có khoản chi trong kỳ.')}`;
 }
 function renderAccounts(){const total=state.accounts.reduce((n,a)=>n+balance(a.id),0);$('#screen').innerHTML=`<div class="segments">${[['accounts','Tài khoản'],['loans','Khoản vay'],['investments','Đầu tư']].map(([k,v])=>`<button data-sub="${k}" class="${sub===k?'active':''}">${v}</button>`).join('')}</div>`;
  if(sub!=='accounts'){const loans=sub==='loans';$('#screen').innerHTML+=`${btn('+ Thêm '+(loans?'khoản vay':'khoản đầu tư'),'record','primary full')}<p class="muted">${loans?'Theo dõi dư nợ thủ công. Khoản vay chưa tự ghi vào thu chi.':'Theo dõi giá trị do bạn nhập; chưa kết nối giá thị trường.'}</p>${state[sub].length?state[sub].map(r=>`<button class="card full" data-record="${esc(r.id)}"><div class="row"><strong>${esc(r.name)}</strong><span>›</span></div><div class="row section"><small>${loans?'Dư nợ còn lại':'Giá trị hiện tại'}</small><strong class="income">${money(r.current)}</strong></div><small>${loans?'Khoản vay ban đầu':'Vốn ban đầu'}: ${money(r.amount)} · ${esc(r.date)}</small></button>`).join(''):empty(loans?'Chưa có khoản vay':'Chưa có khoản đầu tư','Nhấn nút Thêm để bắt đầu theo dõi.')}`;return;}
@@ -116,7 +134,14 @@ function action(name){
  if(name==='previous-day'||name==='following-day'){const d=new Date(selected+'T12:00:00');d.setDate(d.getDate()+(name==='previous-day'?-1:1));selected=iso(d);month=selected.slice(0,7);}
  if(name==='hide')hidden=!hidden;
  if(name==='today'){month=today.slice(0,7);selected=today;}
- if(name==='prev'||name==='next'){const d=new Date(month+'-01T12:00:00');d.setMonth(d.getMonth()+(name==='prev'?-1:1));month=iso(d).slice(0,7);selected=month+'-01';}
+ if(name==='prev'||name==='next'){
+ const step=name==='prev'?-1:1;
+ const d=new Date((page==='stats'&&statsMode==='week'?selected:month+'-01')+'T12:00:00');
+ if(page==='stats'&&statsMode==='week')d.setDate(d.getDate()+step*7);
+ else if(page==='stats'&&statsMode==='year')d.setFullYear(d.getFullYear()+step);
+ else d.setMonth(d.getMonth()+step);
+ selected=iso(d);month=selected.slice(0,7);
+}
  if(name==='name')return editProfile();
 
  if(name==='categories')return modal('Danh mục',`<div class="chips wrap">${state.categories.map(c=>`<span class="pill">${esc(c)}</span>`).join('')}</div>`+field('Thêm danh mục','category','','text','required maxlength="40"'),f=>{const next=structuredClone(state),c=f.get('category').trim();if(!c||next.categories.some(x=>x.toLowerCase()===c.toLowerCase()))throw Error('Danh mục trống hoặc đã tồn tại.');next.categories.push(c);commit(next);});
@@ -138,4 +163,3 @@ document.addEventListener('change',e=>{if(['weekDate','dayDate'].includes(e.targ
 window.addEventListener('storage',e=>{if(e.key===KEY&&e.newValue){try{const next=JSON.parse(e.newValue);validate(next);state=next;if($('#dialog').open)$('#dialog').close();render();toast('Dữ liệu đã được cập nhật từ thẻ khác.');}catch{toast('Không đọc được thay đổi từ thẻ khác.');}}});
 render();
 if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('./sw.js').catch(()=>toast('Chưa bật được chế độ ngoại tuyến.'));
-
